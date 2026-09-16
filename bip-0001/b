@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIPs.me Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        borderCol: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/20 text-slate-950 font-black text-lg">
+                    ₿
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        bips.me 
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">Explorer</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-400 hidden sm:inline">Bitcoin Improvement Proposals</span>
+                <div class="h-4 w-px bg-slate-800"></div>
+                <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:inline"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <!-- Search bar -->
+            <div class="lg:col-span-2 relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-search"></i>
+                </span>
+                <input type="text" id="searchInput" oninput="filterData()" placeholder="Search by BIP number, title, author, or type..." 
+                    class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition shadow-inner">
+            </div>
+
+            <!-- Type Filter -->
+            <div>
+                <select id="typeFilter" onchange="filterData()" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-orange-500 transition">
+                    <option value="">All Types</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Informational">Informational</option>
+                    <option value="Process">Process</option>
+                    <option value="Specification">Specification</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <select id="statusFilter" onchange="filterData()" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-orange-500 transition">
+                    <option value="">All Statuses</option>
+                    <option value="Deployed">Deployed</option>
+                    <option value="Complete">Complete</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Draft">Draft</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total BIPs</span>
+                <span id="statTotal" class="text-2xl font-bold text-white mt-1">0</span>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+                <span class="text-xs text-emerald-400 font-medium uppercase tracking-wider">Deployed</span>
+                <span id="statDeployed" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+                <span class="text-xs text-blue-400 font-medium uppercase tracking-wider">Complete</span>
+                <span id="statComplete" class="text-2xl font-bold text-blue-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+                <span class="text-xs text-rose-400 font-medium uppercase tracking-wider">Closed</span>
+                <span id="statClosed" class="text-2xl font-bold text-rose-400 mt-1">0</span>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col flex-1">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/90 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-white transition" onclick="sortTable('id')">
+                                BIP <i class="fa-solid fa-sort ml-1"></i>
+                            </th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-white transition" onclick="sortTable('title')">
+                                Title <i class="fa-solid fa-sort ml-1"></i>
+                            </th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-white transition" onclick="sortTable('owner')">
+                                Owner <i class="fa-solid fa-sort ml-1"></i>
+                            </th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-white transition" onclick="sortTable('type')">
+                                Type <i class="fa-solid fa-sort ml-1"></i>
+                            </th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-white transition" onclick="sortTable('status')">
+                                Status <i class="fa-solid fa-sort ml-1"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="bipTableBody" class="divide-y divide-slate-800/60 text-sm text-slate-300">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 px-4 text-center">
+                <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-lg mb-3">
+                    <i class="fa-solid fa-search"></i>
+                </div>
+                <h3 class="text-base font-semibold text-white">No matching BIPs found</h3>
+                <p class="text-sm text-slate-400 mt-1">Try adjusting your search query or filter settings.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Comprehensive mock dataset mirroring the schema and items shown in the screenshot
+        const bipsData = [
+            { id: 1, title: "BIP 1 Purpose and Guidelines", owner: "Amir Taiki", type: "Process", status: "Closed" },
+            { id: 2, title: "BIP 2 BIP Submission Process", owner: "Luke Dashjr", type: "Process", status: "Closed" },
+            { id: 9, title: "BIP 9 Version bits with timeout and delay", owner: "Murch", type: "Process", status: "Deployed" },
+            { id: 14, title: "BIP 14 Protocol Version and User Agent", owner: "Shaolin Fry, Luke Dashjr", type: "Informational", status: "Complete" },
+            { id: 16, title: "BIP 16 Pay to Script Hash (P2SH)", owner: "Pieter Wuille, Peter Todd, Greg Maxwell, Rusty Russell", type: "Informational", status: "Deployed" },
+            { id: 21, title: "BIP 21 URI Scheme", owner: "Alan Reiner", type: "Informational", status: "Closed" },
+            { id: 32, title: "BIP 32 Hierarchical Deterministic Wallets", owner: "Gavin Andresen", type: "Specification", status: "Deployed" },
+            { id: 39, title: "BIP 39 Mnemonic code for generating deterministic keys", owner: "Gavin Andresen", type: "Specification", status: "Closed" },
+            { id: 44, title: "BIP 44 Multi-Account Hierarchy for Deterministic Wallets", owner: "Gavin Andresen", type: "Specification", status: "Deployed" },
+            { id: 68, title: "BIP 68 Relative lock-time using consensus-enforced sequences", owner: "Amir Taiki, Patrick Strateman", type: "Specification", status: "Deployed" },
+            { id: 112, title: "BIP 112 CHECKSEQUENCEVERIFY", owner: "Amir Taiki", type: "Specification", status: "Closed" },
+            { id: 141, title: "BIP 141 Segregated Witness (Consensus layer)", owner: "Luke Dashjr", type: "Specification", status: "Closed" }
+        ];
+
+        let currentSortColumn = 'id';
+        let sortAscending = true;
+
+        // Render table on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable(bipsData);
+            updateStats(bipsData);
+        });
+
+        // Toggle light/dark theme helper
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            if (htmlEl.classList.contains('dark')) {
+                htmlEl.classList.remove('dark');
+            } else {
+                htmlEl.classList.add('dark');
+            }
+        }
+
+        function filterData() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filtered = bipsData.filter(item => {
+                const matchesSearch = 
+                    item.id.toString().includes(searchQuery) ||
+                    item.title.toLowerCase().includes(searchQuery) ||
+                    item.owner.toLowerCase().includes(searchQuery) ||
+                    item.type.toLowerCase().includes(searchQuery);
+
+                const matchesType = !typeFilter || item.type === typeFilter;
+                const matchesStatus = !statusFilter || item.status === statusFilter;
+
+                return matchesSearch && matchesType && matchesStatus;
+            });
+
+            renderTable(filtered);
+            updateStats(filtered);
+        }
+
+        // Sorting function
+        function sortTable(column) {
+            if (currentSortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                currentSortColumn = column;
+                sortAscending = true;
+            }
+
+            bipsData.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return sortAscending ? -1 : 1;
+                if (valA > valB) return sortAscending ? 1 : -1;
+                return 0;
+            });
+
+            filterData();
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('bipTableBody');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.remove('flex');
+                emptyState.classList.add('hidden');
+            }
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition duration-150';
+
+                // Status badge styling lookup
+                let statusBadge = '';
+                switch(item.status) {
+                    case 'Deployed':
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Deployed</span>';
+                        break;
+                    case 'Complete':
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">Complete</span>';
+                        break;
+                    case 'Closed':
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">Closed</span>';
+                        break;
+                    default:
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">Draft</span>';
+                }
+
+                let typeBadge = '';
+                switch(item.type) {
+                    case 'Specification':
+                        typeBadge = '<span class="text-purple-400 font-medium">Specification</span>';
+                        break;
+                    case 'Informational':
+                        typeBadge = '<span class="text-sky-400 font-medium">Informational</span>';
+                        break;
+                    case 'Process':
+                        typeBadge = '<span class="text-amber-400 font-medium">Process</span>';
+                        break;
+                    default:
+                        typeBadge = `<span class="text-slate-300">${item.type}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono text-xs font-bold text-orange-400">BIP-${item.id}</td>
+                    <td class="py-3.5 px-4 font-medium text-white">${item.title}</td>
+                    <td class="py-3.5 px-4 text-slate-300 text-xs">${item.owner}</td>
+                    <td class="py-3.5 px-4 text-xs">${typeBadge}</td>
+                    <td class="py-3.5 px-4">${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats(data) {
+            document.getElementById('statTotal').innerText = data.length;
+            document.getElementById('statDeployed').innerText = data.filter(i => i.status === 'Deployed').lentgh || data.filter(i => i.status === 'Deployed').length;
+            document.getElementById('statComplete').innerText = data.filter(i => i.status === 'Complete').length;
+            document.getElementById('statClosed').innerText = data.filter(i => i.status === 'Closed').length;
+        }
+    </script>
+</body>
+</html>
